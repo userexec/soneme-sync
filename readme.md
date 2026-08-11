@@ -1,307 +1,372 @@
 # Soneme Sync
 
-Multipurpose syncing solution for the Sonim XP3900 that allows the creation of FTP and SFTP sync jobs. Each sync job has a source and a destination. One must be local to the phone, and the other must be an FTP or SFTP endpoint and its associated address and login details. Sync jobs are run manually when desired.
+![Soneme Sync Icon](https://github.com/userexec/soneme-sync/blob/master/soneme-sync-icon.png?raw=true)
 
-# Target device properties
+Soneme Sync is a small, keypad-friendly Android file synchronization utility built for moving files between a Sonim XP3900 and FTP or SFTP servers without cloud accounts, sync services, scheduled jobs, or Google Play Services.
 
-The Sonim XP3900 has the following constraints:
+It is intentionally simple. You define local folders on the phone, define remote folders on servers, then create Jobs that copy from one to the other when you manually run them. A Job can upload from Local to Remote or download from Remote to Local.
 
-- 240x320
-- Android 11 Go
-- No touchscreen
-- Options menu softkeys
-- No Google Play Store or services
-- App must be sideloaded as an .apk
+Soneme Sync is not rsync, a two-way reconciliation tool, or a backup suite with opinions about timestamps. It follows one deliberately simple rule:
 
-# Application overview
+**If the destination already has something with that name, leave it alone.**
 
-Soneme Sync has a tabbed interface with three tabs: Jobs, Locals, and Remotes.
+That makes it useful for things like copying new photos to a NAS, pulling down a folder of files for offline use, or other jobs where "send me the things I don't already have" is exactly what you want.
 
-Jobs tab lists configurable Job items. Locals tab lists configurable Local items. Remotes tab lists configurable Remotes items.
+The interface is designed around the XP3900's D-pad and three Sonim softkeys. There are no touch controls.
 
-A Job item consists of a uid, unique name, a source (a Local or a Remote item), and a destination (a Local or a Remote item). If the source is local, the destination must be remote. If the source is remote, the destination must be local. When attempting to create a Job, if no locals and/or remotes are available, the application should warn accordingly (e.g. "No local folders available", "No remote folders available", "No local or remote folders available") and refuse to pull up the Job Creation view.
+![Job running interface](https://github.com/userexec/soneme-sync/blob/master/screenshot-jobrun.png?raw=true)  ![Jobs interface](https://github.com/userexec/soneme-sync/blob/master/screenshot-jobs.png?raw=true)  ![Locals interface](https://github.com/userexec/soneme-sync/blob/master/screenshot-locals.png?raw=true)  ![Remotes interface](https://github.com/userexec/soneme-sync/blob/master/screenshot-remotes.png?raw=true)  ![Local interface](https://github.com/userexec/soneme-sync/blob/master/screenshot-local.png?raw=true)  ![Remote interface](https://github.com/userexec/soneme-sync/blob/master/screenshot-remote.png?raw=true)
 
-A Local item consists of a uid, unique name, tree URI, and human-readable path on the local filesystem.
+## Features
 
-A Remote item consists of a uid, unique name, a connection type, an address, a port, a path, a username, and a password.
+* Manual Local-to-Remote and Remote-to-Local sync Jobs
+* Multiple configurable Locals, Remotes, and Jobs
+* FTP and SFTP support
+* Passive-mode plain FTP
+* Conventional anonymous FTP login when username and password are blank
+* Password-authenticated SFTP
+* Recursive folder synchronization
+* Dotfile support
+* Name-only transfer decisions
+* No overwriting of existing destination files or folders
+* Temporary `.soneme-part` files to avoid presenting incomplete transfers as finished files
+* Cleanup of stale partial transfers at the beginning of the next run
+* Per-Job run logs and last-run status
+* Connection testing for Remotes
+* Foreground sync operation with the screen off or flip closed
+* One-minute inactivity timeout
+* Sonim softkey integration
+* No accounts, analytics, advertising, subscriptions, or Google Play Services
 
-Unique names need only be unique within their class of item. A Local can be called "Photos" and a Remote can also be called "Photos" and a Job can also be called "Photos". Two of the same type cannot both be called "Photos", though. Names are case insensitive for determining uniqueness.
+## Tested Devices
 
-When transferring files, the decision of what to transfer is always based on file and folder names. Size, timestamp, etc. are not considered. If a destination already has a file or folder with the same name, the source's version should never be sent/created. File and folder name collisions are not handled uniquely--if a source has a file that matches a folder's name on the destination, then the destination already has something with that name and it is not eligible to transfer. If files and folder names ever collide, then the user messed up upstream and this app wants nothing to do with it.
+Soneme Sync has been developed and tested on:
 
-To sync, determine the files and folders present in the source and destination and compare. Sync jobs recursively traverse the entire source tree. Any files and folders that the source has and the destination does not should be transferred to/created on the destination (including dotfiles). Any .soneme-part files present anywhere in the destination tree should be deleted before transfers begin.
+* Sonim XP3plus XP3900 — Android 11 Go
 
-To prevent partial transfers, when syncing files to the destination, they should have a . prepended and .soneme-part appended to their destination filename. On transfer completion per file they should be renamed back to their original name.
+The app uses normal Android APIs where practical, but the interface and softkey behavior are specifically designed for the XP3900's 240x320 non-touch display.
 
-Auth is password only. This application does not support keys. App-private storage of credentials is fine to keep things simple. If someone steals my phone, manages to retrieve my passwords out of my device, hacks my wifi, and gets into my NAS, frankly at that point they earned the cat photos I'd have happily sent them anyway if they just asked.
+Other Android devices are not a target. In particular, a normal touchscreen phone probably will not have the Sonim softkeys the interface expects.
 
-SFTP host-key policy is accept anything. I change my servers out often enough that I'd be annoyed if swapping hardware or reformatting equipment caused errors in a random phone sync app.
+## Installing
 
-FTP is plain FTP, passive mode only. If an FTP Remote's username and password are blank, assume conventional anonymous login.
+Soneme Sync is distributed as a normal Android APK.
 
-Remote path semantics: Treat configured paths exactly as the underlying FTP or SFTP service would normally interpret them. Do not convert between absolute and relative paths or otherwise rewrite path semantics. If the user enters an absolute path, use it as absolute; if they enter a relative path, pass it through as relative and allow the server to resolve it according to that protocol/session’s normal behavior.
+Copy the APK to the device and install it, or install it from a connected computer with ADB:
 
-App starts up in Jobs tab.
+    adb install soneme-sync.apk
 
-# Views
+If updating an existing release signed with the same release key:
 
-## Jobs
+    adb install -r soneme-sync.apk
 
-### Controls
+Android may require permission to install apps from unknown sources when installing directly on the phone.
 
- - Left and right buttons switch tabs
- - Up and down cycle through the list
- - Clicking a job runs the job in Job Run view
- - Back button returns to the launcher
+## How Soneme Sync Is Organized
 
-### Main content
+The main interface has three tabs:
 
-Listing of jobs that can be run or edited
+### Jobs
 
-Each list item consists of:
- - Job name (marquee if out of room)
- - Last run date and time
- - Last run success/error/canceled indicator
+Jobs are the sync operations you actually run.
 
-### Options menu
+Each Job has:
 
- - Info
+* a name,
+* a source,
+* a destination,
+* a last-run time,
+* and a last-run result.
 
-   Opens Job view
-   
- - Move up
+One side of a Job must be a Local and the other must be a Remote.
 
-   Reorders the Job in the list up one spot. Blank menu slot if already the first item in the list.
+Selecting a Job runs it. The softkey menu can also show Job information, move the Job upward in the list, or create a new Job.
 
- - New
+### Locals
 
-   Opens Job Creator view
+Locals are folders on the phone.
 
+A Local can point to internal storage or removable storage. Soneme Sync uses Android's system folder picker and remembers access to the selected folder.
 
-## Locals
+Each Local has a friendly name so Jobs do not need to care about Android's underlying storage URI.
 
-### Controls
+Examples might be:
 
- - Left and right buttons switch tabs
- - Back button goes to Jobs tab
- - Up and down cycle through the list
- - Clicking a Local opens up Local Creator view with item fields populated with this Local
+* `Camera`
+* `Downloads`
+* `Audiobooks`
+* `SD Card Photos`
 
-### Main content
+Selecting an existing Local opens it for editing. Pressing Back while editing returns to the Locals list without saving changes.
 
-Listing of Locals.
-Local items have name on top line, and folder path below it. Both lines are capable of marqueeing when focused if they extend past the viewable area.
+### Remotes
 
-### Options menu
+Remotes are FTP or SFTP locations.
 
- - Edit
-   
-   Opens the Local Creator view with populated fields for the focused item.
+Each Remote contains:
 
- - Move up
+* a friendly name,
+* connection type,
+* host/address,
+* optional port,
+* optional remote path,
+* username,
+* password.
 
-   Reorders the Local in the list up one spot.  Blank menu slot if already the first item in the list.
+The Remotes list shows the configured path and host beneath the Remote name.
 
- - New
+Selecting an existing Remote opens it for editing. Pressing Back while editing returns to the Remotes list without saving changes.
 
-   Opens the Local Creator view with blank fields
+## Adding a Local
 
+Open the **Locals** tab and choose **New**.
 
-## Remotes
+Enter a unique Local name, then choose the folder.
 
-### Controls
+The Android folder picker will appear. Select the folder Soneme Sync should use and confirm the selection.
 
- - Left button returns to Locals tab, right button does nothing
- - Back button goes to Locals tab
- - Up and down cycle through the list
- - Clicking a Remote opens up Remote Creator view with item fields populated with this Remote
+Choose **Save**.
 
-### Main content
+Local names only need to be unique among other Locals. A Local, Remote, and Job may all share the same name if that happens to be useful.
 
-Listing of Remotes.
-Remote items have name on top line, and "<path> on <URL>" below it. Both lines are capable of marqueeing when focused if they extend past the viewable area.
+## Adding a Remote
 
-### Options menu
+Open the **Remotes** tab and choose **New**.
 
- - Edit
-   
-   Opens the Remote Creator view with populated fields for the focused item.
+Choose either **FTP** or **SFTP**, then configure the connection.
 
- - Move up
+### Address
 
-   Reorders the Remote in the list up one spot.  Blank menu slot if already the first item in the list.
+The Address field accepts a normal hostname or IP address:
 
- - New
+    nas.example.com
 
-   Opens the Remote Creator view with blank fields
+    192.168.1.10
 
+It can also parse a full connection URI and populate the applicable fields:
 
-## Job
+    sftp://user:password@nas.example.com:2222/photos
 
-### Controls
+The Connection Type selector remains authoritative. In other words, selecting SFTP means the Remote is SFTP even if the contents typed into Address happen to resemble some other URI scheme.
 
-- D-pad scrolls
-- Back button returns to Jobs view
+### Port
 
-### Main content
+Port is optional.
 
-- Job name heading
-- Job name
-- Source heading
-- Source name
-- Destination heading
-- Destination name
-- Last run heading
-- Last run date and time
-- Log heading
-- Log/error info from last run. Focusable box, non-editable, pre-scrolled to bottom.
+If omitted:
 
-### Options menu
+* FTP uses port `21`
+* SFTP uses port `22`
 
- - Delete
+### Path
 
-   Deletes the job
+Path is optional.
 
- - Edit
+Remote paths are used with the same absolute or relative meaning they normally have on the configured server.
 
-   Opens job in Job Creator view
+For example:
 
- - Run
+    /srv/photos/phone
 
-   Runs job in Job Run view
+is passed as an absolute path, while:
 
+    photos/phone
 
-## Job Creator
+is passed as a relative path and is interpreted relative to whatever location the FTP or SFTP session normally uses.
 
-### Controls
+Soneme Sync does not try to "fix" remote paths or convert one form into the other.
 
-- D-pad navigates fields
-- Back button returns to Jobs view without saving
+If Path is blank, the Remote uses the server/session's normal starting location.
 
-### Main content
+### Authentication
 
-- Job name field (warn if not unique among Jobs)
-- Source heading
-- Source type selector, options Local and Remote
-- "Choose source..." selector. If Local is chosen, names of Locals are brought up to select one. If Remote chosen, then names of Remotes
-- Destination heading
-- "Choose destination..." selector. If source was Local, show Remotes. If source was Remote, show Locals.
+SFTP requires a username and password. SSH keys are not supported.
 
-### Options menu
+FTP username and password are optional. If both are blank, Soneme Sync uses a conventional anonymous FTP login.
 
- - (blank)
+### Testing
 
- - (blank)
+Choose **Test** to verify a Remote before saving it.
 
- - Save
+The test:
 
-   Save only appears if Job name, source, and destination have values and the Job name is unique.
+1. resolves the host,
+2. connects,
+3. authenticates,
+4. checks that the configured path can be listed,
+5. disconnects.
 
+The test does not create, delete, or modify files.
 
-## Job Run
+## Creating a Job
 
-### Controls
+Open the **Jobs** tab and choose **New**.
 
-- Back button terminates job and returns to Jobs view
+Give the Job a name, then choose whether its source is Local or Remote.
 
-### Main content
+Choose the source. The destination will automatically be the opposite type:
 
-Foreground service. Continue if the flip is closed / screen goes off / user leaves the Activity in this view. Notification of "Soneme Sync — Running <job name>...".
+* Local source -> Remote destination
+* Remote source -> Local destination
 
-Job Run main content view will be the trickiest visually. It is meant to fill the screen without scrolling. Some adjustments may be necessary after testing.
+Choose the destination and save the Job.
 
-On start:
+If no suitable Locals or Remotes have been configured yet, Soneme Sync will require you to create them before creating the Job.
 
-Discard job's previous log and begin recording new log.
+## Running a Job
 
-- Loading icon
-- "Running <job name>..."
-- Log box with auto scrolling log. Not focusable. Logs can be reviewed later in Job view.
+Select a Job from the Jobs list.
 
-If log exceeds 2000 lines, throw an error condition and add "Maximum log length exceeded" to the end of the log.
-If no transfer/network activity for 1 minute, throw an error condition and add "Job terminated by timeout" to the end of the log.
+Soneme Sync opens the Run screen, clears that Job's previous log, and begins the sync.
 
-On success:
+The current log is displayed while the Job runs. The sync continues in a foreground service if the screen turns off, the flip is closed, or the Run activity is no longer in the foreground.
 
-- Success icon
-- "<job name> success."
-- Log box remains in place
+A successful run displays its success state for about five seconds, then returns to the Jobs list.
 
-Success message stays for 2 seconds then user is returned to Jobs view
+If the Job fails, the error state remains on screen so the log can be reviewed.
 
-On error:
+The saved Job information screen also provides access to the most recent run log.
 
-- Error icon
-- "<job name> failed."
-- Log box takes focus and becomes scrollable
+## What Actually Gets Synchronized
 
-Error message stays in place until user hits back button.
+This is the most important part of Soneme Sync's behavior.
 
-### Options menu
+The source tree is recursively compared with the destination tree by **name only**.
 
- - Cancel
+File size, modification time, creation time, checksum, and file contents are not used to decide whether something should transfer.
 
-   Stop after/interrupt the currently active transfer as promptly as the protocol library permits, close connection, record Canceled on end of log, retain the log generated to that point. Do not clean up partial transfers.
+If the source contains:
 
- - (blank)
+    DCIM/
+      20260811_120000.jpg
+      20260811_121500.jpg
 
- - (blank)
+and the destination already contains:
 
+    DCIM/
+      20260811_120000.jpg
 
-## Local Creator
+then only:
 
-### Controls
+    20260811_121500.jpg
 
-- D-pad navigates fields
-- Back button returns to Locals view without saving
+is transferred.
 
-### Main content
+Soneme Sync does not examine whether the existing `20260811_120000.jpg` is older, newer, larger, smaller, or completely different. The name exists, so it is left alone.
 
-- Local name field (warn if not unique among Locals)
-- Folder heading
-- "Choose folder..." selector.
+The same rule applies to directories.
 
-### Options menu
+This also means a file/folder type collision is simply skipped. If the source has a file named `Photos` and the destination already has a folder named `Photos`, then the destination already has something with that name and Soneme Sync wants nothing further to do with it.
 
- - Delete
+Soneme Sync does **not** delete ordinary destination files that are absent from the source. A sync therefore adds missing names; it does not make the destination an exact mirror.
 
-   Delete only appears if arriving from the Edit softkey or clicking an existing job in the Locals view. If Local is used by a job, refuse to delete with message "Unable to delete. Local <name> is used by job <name>."
+Dotfiles and dot-directories are included in normal recursive syncing.
 
- - (blank)
+## Partial Transfers
 
- - Save
+Soneme Sync avoids making an incomplete transfer look like a completed destination file.
 
-   Save only appears if Local name and folder have values and the Local name is unique.
+While a file is being transferred, its destination name is temporarily changed to:
 
+    .filename.soneme-part
 
-## Remote Creator
+After the transfer completes successfully, the temporary file is renamed to the intended filename.
 
-### Controls
+If a transfer fails or is canceled, the partial file is deliberately left in place. This can be useful when diagnosing failures from the server or another machine.
 
-- D-pad navigates fields
-- Back button returns to Remotes view without saving
+At the beginning of the next run, Soneme Sync recursively removes stale `.soneme-part` files from the destination before beginning new transfers.
 
-### Main content
+This is the only destination cleanup Soneme Sync performs automatically.
 
-- Remote name field (warn if not unique among Remotes)
-- Connection type label and selector, options FTP and SFTP
-- Address label and field, parses address and keeps host, populates subsequent fields with port, path, and authentication info if present.
-- Port label and field, optional. Defaults to 21 if FTP and not filled, 22 if SFTP and not filled.
-- Path label and field, optional. Accepts absolute or relative remote paths. Preserve the path semantics as entered and pass it to the FTP/SFTP implementation without converting between absolute and relative forms. Perform only whatever escaping or encoding is required by the protocol/library. If no path specified, then it's just wherever the server dumps them.
-- Authentication heading
-- Username label and field, optional if FTP, required if SFTP
-- Password label and field, optional if FTP, required if SFTP
+## Canceling a Job
 
-### Options menu
+Choose **Cancel**, or use Back while a Job is running, to stop it.
 
- - Delete
+Soneme Sync interrupts the active transfer as promptly as the FTP/SFTP library permits, closes the connection, records the cancellation in the Job log, and returns from the run.
 
-   Delete only appears if arriving from the Edit softkey or clicking an existing job in the Remotes view. If Remote is used by a job, refuse to delete with message "Unable to delete. Remote <name> is used by job <name>."
+Any partial transfer is left in place and will be cleaned automatically at the beginning of the next run.
 
- - Test
+## Logs and Timeouts
 
-   If all fields valid, test the connection and report success or failure. To test, resolve host, connect, authenticate, verify configured path exists and can be listed, disconnect. No filesystem changes
+Only the most recent log for each Job is retained.
 
- - Save
+Starting a new run discards that Job's previous log and begins a new one.
 
-   Save only appears if Remote name and address have values and the Remote name is unique.
+A Job is terminated with an error if:
+
+* the log exceeds 2,000 lines, or
+* there is no transfer/network activity for one minute.
+
+This is intentionally a single-current-log model rather than an accumulating history.
+
+## Navigation and Softkeys
+
+Left and Right move between the Jobs, Locals, and Remotes tabs where applicable.
+
+Up and Down move through lists and form controls.
+
+Back generally moves to the previous logical screen. Back from an editor discards unsaved changes.
+
+Soneme Sync uses the native three-position Sonim softkey bar. Available actions change with the current view and include operations such as:
+
+* Info
+* Edit
+* Move up
+* New
+* Delete
+* Test
+* Save
+* Run
+* Cancel
+
+## FTP and SFTP Notes
+
+### FTP
+
+FTP support is intentionally basic:
+
+* plain FTP only,
+* passive mode only,
+* no TLS/FTPS.
+
+Plain FTP does not encrypt credentials or transferred data. Use it only on networks where that is acceptable.
+
+### SFTP
+
+SFTP uses password authentication only. SSH keys are not supported.
+
+Soneme Sync accepts the server's SSH host key without prompting or pinning it. This avoids failures when a server is replaced, reformatted, or otherwise receives a new host key, but it also means Soneme Sync does not provide SSH host-identity verification.
+
+If you need strict host-key validation, this is not the SFTP client for that job.
+
+## Storage and Privacy
+
+Soneme Sync does not require:
+
+* an account,
+* Google Play Services,
+* analytics,
+* advertising,
+* a subscription,
+* a vendor cloud service.
+
+Configuration, logs, and stored credentials are kept in the app's private storage.
+
+Naturally, the app does require network access when running FTP or SFTP Jobs. Where those files go is entirely determined by the Remotes you configure.
+
+## Building
+
+Soneme Sync is a standard Gradle Android project.
+
+A debug build can be produced with:
+
+    ./gradlew assembleDebug
+
+A configured release build can be produced with:
+
+    ./gradlew assembleRelease
+
+The resulting APK is written beneath:
+
+    app/build/outputs/apk/
+
+Release builds must be signed with an Android signing key before installation. Future updates must use the same signing identity as the installed release.
