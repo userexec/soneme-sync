@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.SonemeSync" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#4F6F8F</item>
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#263746</item>
+    </style>
+</resources>

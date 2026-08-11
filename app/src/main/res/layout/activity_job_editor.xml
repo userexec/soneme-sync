@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Job name" android:textStyle="bold" />
+        <EditText
+            android:id="@+id/nameField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:selectAllOnFocus="true"
+            android:nextFocusDown="@id/sourceTypeButton" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Source" android:textStyle="bold" android:paddingTop="6dp" />
+        <Button
+            android:id="@+id/sourceTypeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Local"
+            android:nextFocusUp="@id/nameField"
+            android:nextFocusDown="@id/sourceButton" />
+
+        <Button
+            android:id="@+id/sourceButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Choose source..."
+            android:nextFocusUp="@id/sourceTypeButton"
+            android:nextFocusDown="@id/destinationButton" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Destination" android:textStyle="bold" android:paddingTop="6dp" />
+        <Button
+            android:id="@+id/destinationButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Choose destination..."
+            android:nextFocusUp="@id/sourceButton" />
+    </LinearLayout>
+</ScrollView>
